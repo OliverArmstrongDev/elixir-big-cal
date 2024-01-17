@@ -3,7 +3,6 @@ import React from 'react'
 
 import Week from './Week'
 import TimeGrid from './TimeGrid'
-import localizer from './localizer'
 
 function workWeekRange(date, options) {
   return Week.range(date, options).filter(
@@ -12,35 +11,53 @@ function workWeekRange(date, options) {
 }
 
 class WorkWeek extends React.Component {
-  static propTypes = {
-    date: PropTypes.instanceOf(Date).isRequired,
-  }
-
-  static defaultProps = TimeGrid.defaultProps
-
   render() {
-    let { date, ...props } = this.props
+    /**
+     * This allows us to default min, max, and scrollToTime
+     * using our localizer. This is necessary until such time
+     * as TimeGrid is converted to a functional component.
+     */
+    let {
+      date,
+      localizer,
+      min = localizer.startOf(new Date(), 'day'),
+      max = localizer.endOf(new Date(), 'day'),
+      scrollToTime = localizer.startOf(new Date(), 'day'),
+      ...props
+    } = this.props
     let range = workWeekRange(date, this.props)
-
-    return <TimeGrid {...props} range={range} eventOffset={15} />
+    return (
+      <TimeGrid
+        {...props}
+        range={range}
+        eventOffset={15}
+        localizer={localizer}
+        min={min}
+        max={max}
+        scrollToTime={scrollToTime}
+      />
+    )
   }
 }
 
-WorkWeek.range = (date, options) => {
-  return Week.range(date, options).filter(
-    d => [6, 0].indexOf(d.getDay()) === -1
-  )
+WorkWeek.propTypes = {
+  date: PropTypes.instanceOf(Date).isRequired,
+  localizer: PropTypes.any,
+  min: PropTypes.instanceOf(Date),
+  max: PropTypes.instanceOf(Date),
+  scrollToTime: PropTypes.instanceOf(Date),
 }
+
+WorkWeek.defaultProps = TimeGrid.defaultProps
+
+WorkWeek.range = workWeekRange
 
 WorkWeek.navigate = Week.navigate
 
-WorkWeek.title = (date, { formats, culture }) => {
-  let [start, ...rest] = workWeekRange(date, { culture })
-  return localizer.format(
-    { start, end: rest.pop() },
-    formats.dayRangeHeaderFormat,
-    culture
-  )
+WorkWeek.title = (date, { localizer }) => {
+  let [start, ...rest] = workWeekRange(date, { localizer })
+
+  return localizer.format({ start, end: rest.pop() }, 'dayRangeHeaderFormat')
 }
 
 export default WorkWeek
